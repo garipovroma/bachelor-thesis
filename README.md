@@ -2,6 +2,10 @@
 
 ## Разработка архитектуры глубокого обучения способной обрабатывать табличные данные для решения задач мета-обучения
 
+Код разработанной архитектуры содержится в папке `deepsets`
+
+`MetaLearning-GAN` содержит некоторые мои эксперименты с LM-GAN
+
 Инструкции по запуску:
 1. Скачиваем [processed_data.zip](https://disk.yandex.ru/d/QnxlQAvZJs3WNA) -- train и test датасеты
 2. Содержимое архива необходимо поместить в `MetaLearning-GAN/meta_gan/processed_data`и в `deepsets/processed_data`
