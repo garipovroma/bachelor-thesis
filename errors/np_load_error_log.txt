@@ -1,0 +1,18 @@
+/Users/garipovroma/anaconda3/envs/diploma/bin/python /Users/garipovroma/work/itmo/diploma/MetaLearning-GAN/meta_gan/Trainer.py
+ 15%|█▌        | 1514/9912 [00:48<04:26, 31.47it/s]
+Traceback (most recent call last):
+  File "/Users/garipovroma/work/itmo/diploma/MetaLearning-GAN/meta_gan/Trainer.py", line 228, in <module>
+    trainer = Trainer()
+  File "/Users/garipovroma/work/itmo/diploma/MetaLearning-GAN/meta_gan/Trainer.py", line 44, in __init__
+    self.data_loader = get_loader(
+  File "/Users/garipovroma/work/itmo/diploma/MetaLearning-GAN/meta_gan/DatasetLoader.py", line 45, in get_loader
+    datasets_inner = DatasetFolder(path, features_size, instances_size, classes_size, meta, lambdas, train_meta)
+  File "/Users/garipovroma/work/itmo/diploma/MetaLearning-GAN/meta_gan/DatasetLoader.py", line 26, in __init__
+    self.meta_features.train(self.root)
+  File "/Users/garipovroma/work/itmo/diploma/MetaLearning-GAN/meta_gan/feature_extraction/MetaFeaturesCollector.py", line 41, in train
+    stacked = np.load(f'{path}{name}')
+  File "/Users/garipovroma/anaconda3/envs/diploma/lib/python3.8/site-packages/numpy/lib/npyio.py", line 438, in load
+    raise ValueError("Cannot load file containing pickled data "
+ValueError: Cannot load file containing pickled data when allow_pickle=False
+
+Process finished with exit code 1
