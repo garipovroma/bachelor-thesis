@@ -2,7 +2,7 @@
 
 ## Разработка архитектуры глубокого обучения способной обрабатывать табличные данные для решения задач мета-обучения
 
-Код разработанной архитектуры содержится в папке `deepsets`
+Код разработанной архитектуры содержится в папке `deepsets`, конкретно в [deepset_approach.ipynb](https://github.com/garipovroma/bachelor-thesis/blob/master/deepsets/deepset_approach.ipynb)
 
 `MetaLearning-GAN` содержит некоторые мои эксперименты с LM-GAN
 
