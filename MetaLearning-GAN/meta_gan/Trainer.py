@@ -37,7 +37,7 @@ class Trainer:
         self.device = device
         self.log_step = 10
         self.log_step_print = 50
-        self.save_period = 1
+        self.save_period = 5
         self.continue_from = continue_from
         self.data_prefix = data_prefix
         self.exp_prefix = exp_prefix
@@ -263,7 +263,7 @@ if __name__ == '__main__':
     trainer = Trainer(num_epochs=20,
                       # device=args.device,
                       continue_from=0,
-                      exp_prefix='stabilization'
+                      exp_prefix='stabilization-2'
                       )
     trainer.train()
     # trainer = Trainer(data_prefix='')

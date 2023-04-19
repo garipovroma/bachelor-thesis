@@ -3,9 +3,11 @@ import os
 import torch
 from torch.utils import data
 import numpy as np
+from torch.utils.data import DataLoader
+
 from feature_extraction.MetaFeaturesCollector import MetaFeaturesCollector
 from feature_extraction.LambdaFeaturesCollector import LambdaFeaturesCollector
-
+from Models import CONFIG
 
 class DatasetFolder(data.Dataset):
 
@@ -421,6 +423,99 @@ class DatasetWithTargets(data.Dataset):
         print(lambda_tensors.shape)
         np.save(f'{pref_name}_lambda_tensors.npy', lambda_tensors)
 
+
+
+
+def get_deepset_loader():
+    lambdaFeaturesCollector = LambdaFeaturesCollector(CONFIG.features, CONFIG.instances)
+    metaFeaturesCollector = MetaFeaturesCollector(CONFIG.features, CONFIG.instances)
+    train_dataset = DatasetWithTargets('../processed_data/processed_16_64_2/',
+                                       CONFIG.features,
+                                       CONFIG.instances,
+                                       CONFIG.classes,
+                                       metaFeaturesCollector,
+                                       lambdaFeaturesCollector,
+                                       True,
+                                       meta_precalc_path='precalculated_data/train_meta_tensors.npy',
+                                       lambda_precalc_path='precalculated_data/train_lambda_lambda_tensors.npy',
+                                       standardscale=CONFIG.standardscaler,
+                                       meta_standardscale=CONFIG.meta_standardscaler,
+                                       transpose=CONFIG.transpose)
+
+    test_lambdaFeaturesCollector = LambdaFeaturesCollector(CONFIG.features, CONFIG.instances)
+
+    test_dataset = DatasetWithTargets('../processed_data/test/',
+                                      CONFIG.features,
+                                      CONFIG.instances,
+                                      CONFIG.classes,
+                                      metaFeaturesCollector,
+                                      lambdaFeaturesCollector,
+                                      False,
+                                      meta_precalc_path='precalculated_data/test_meta_tensors.npy',
+                                      lambda_precalc_path='precalculated_data/test_lambda_lambda_tensors.npy',
+                                      standardscale=CONFIG.standardscaler,
+                                      meta_standardscale=CONFIG.meta_standardscaler,
+                                      transpose=CONFIG.transpose)
+    from copy import deepcopy
+    test_dataset.data_scaler = deepcopy(train_dataset.data_scaler)
+    test_dataset.meta_data_scaler = deepcopy(test_dataset.meta_data_scaler)
+
+    # train_dataloader = DataLoader(train_dataset,
+    #                               batch_size=CONFIG.train_batch_size,
+    #                               num_workers=CONFIG.num_workers,
+    #                               shuffle=True)
+
+    test_dataloader = DataLoader(test_dataset,
+                                 batch_size=16,
+                                 num_workers=0,
+                                 shuffle=False)
+
+    return test_dataloader
+
+def get_lmgan_dataloader():
+    def getMeta(data_in: torch.Tensor, metas):
+        meta_list = []
+        for data in data_in:
+            meta_list.append(metas.getShort(data.cpu().detach().numpy()))
+        result = torch.stack(meta_list)
+        return to_variable(result.view((result.size(0), result.size(1), 1, 1)))
+
+
+    def to_variable(x):
+        return Variable(x)
+
+
+    exp_num = 1
+    datasize = 64
+    z_size = 100
+    batch_size = 1911
+    workers = 0
+    lambdas = LambdaFeaturesCollector(16, 64)
+    metas = MetaFeaturesCollector(16, 64)
+
+
+    data_loader, train_dataset = get_loader(
+                "../../processed_data/corr_stabilized_train/",
+                # f"../processed_data/{data_prefix}processed_{self.features}_{self.instances}_{self.classes}/",
+                16, 64, 2, metas,
+                lambdas, batch_size,
+                workers,
+                True,
+                '../precalculated_data/stabilized_corr_train_meta_tensors.npy',
+                '../precalculated_data/stabilized_corr_train_lambda_tensors.npy', None, None, stabilize=None)
+
+    datatest, _ = get_loader(
+                        # f"../processed_data/{data_prefix}test/",
+                "../../processed_data/corr_stabilized_test/",
+                16, 64, 2, metas,
+                lambdas, batch_size,
+                workers,
+                  False,
+                  '../precalculated_data/stabilized_corr_test_meta_tensors.npy',
+                  '../precalculated_data/stabilized_corr_test_lambda_tensors.npy', None,
+                  None,
+                  stabilize=None)
+    return datatest
 
 if __name__ == '__main__':
     datasets = DatasetFolder("../processed_data/processed_16_64_2/processed_16_64_2/", 16, 64, 2, MetaFeaturesCollector(16, 64),

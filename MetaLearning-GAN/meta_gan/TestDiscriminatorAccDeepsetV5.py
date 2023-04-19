@@ -5,6 +5,11 @@ from DatasetLoader import DatasetWithTargets
 from feature_extraction.MetaFeaturesCollector import MetaFeaturesCollector
 from feature_extraction.LambdaFeaturesCollector import LambdaFeaturesCollector
 
+def acc(y_pred, y_true):
+    y_pred_ = (y_pred == y_pred.max(dim=1, keepdim=True)[0]).to(bool)
+    y_pred__ = ((y_true == 1) & (y_pred_ == 1)).to(int)
+    return y_pred__.sum() / y_pred__.shape[0]
+
 if __name__ == '__main__':
 
     model = DeepSetModelV5(hidden_size_0=CONFIG.hidden_size_0,
