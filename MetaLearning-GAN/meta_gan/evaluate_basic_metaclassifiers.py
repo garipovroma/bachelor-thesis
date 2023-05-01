@@ -12,10 +12,11 @@ from train_basic_metaclassifiers import EXP_NUM, model_names, models
 
 from joblib import dump, load
 
-from DatasetLoader import get_deepset_loader
+from DatasetLoader import get_deepset_loader, get_lmgan_dataloader, get_deepset_flattened_loader
 
-from Models import DeepSetModelV5, CONFIG
+from Models import DeepSetModelV5, CONFIG, get_discriminator, DeepSetFlattenedModel, DeepSetModelV6
 import copy
+
 
 # calculate accuracy for all models in basic_metaclassifiers
 
@@ -26,6 +27,7 @@ def read_data(folder_path, meta_path, lambda_path):
     data = np.load(full_meta_path, allow_pickle=True).reshape(-1, 27)
     target = np.load(full_lambda_path, allow_pickle=True)
     return data, target
+
 
 def load_basic_models_weights(load_from_torch=None):
     models_dict = {model_name: [] for model_name in model_names}
@@ -65,7 +67,7 @@ def calculate_accuracy(model, data, target):
     return acc
 
 
-def calculate_accuracy_with_dataloader(model, dataloader, transform_pred=None):
+def calculate_accuracy_with_dataloader_deepset(model, dataloader, transform_pred=None):
     acc = 0
     for X_p, X_n, meta, target in dataloader:
         meta = meta.float()
@@ -78,6 +80,32 @@ def calculate_accuracy_with_dataloader(model, dataloader, transform_pred=None):
     return acc
 
 
+def calculate_accuracy_with_dataloader_deepset_flattened(model, dataloader, transform_pred=None):
+    acc = 0
+    for X, meta, target in dataloader:
+        meta = meta.float()
+        target = target.float()
+        y_pred = model(X, meta)
+        if transform_pred:
+            y_pred = transform_pred(y_pred)
+        acc += torch_acc_numerator(y_pred, target)
+    acc = acc / len(dataloader.dataset)
+    return acc
+
+
+def calculate_accuracy_with_dataloader_lmgan(model, dataloader, transform_pred=None):
+    acc = 0
+    for i, data in enumerate(dataloader):
+        dataset = data[0]
+        metas = data[1]
+        lambdas = data[2]
+        real_outputs = model(dataset, metas)
+        y_pred = real_outputs[:, 1:]
+        acc += torch_acc_numerator(y_pred, lambdas)
+    acc = acc / len(dataloader.dataset)
+    return acc
+
+
 def calculate_accuracy_for_all_models(models_dict, data, target, dataloader_for_model):
     acc_dict = {model_name: [] for model_name in model_names}
     for model_name, dataloader in zip(model_names, dataloader_for_model):
@@ -86,9 +114,14 @@ def calculate_accuracy_for_all_models(models_dict, data, target, dataloader_for_
                 acc = calculate_accuracy(model, data, target)
             else:
                 transform_pred = None
-                if model_name == 'deepset':
+                if model_name in ['deepset', 'deepset_v6']:
                     transform_pred = lambda x: torch.sigmoid(x)
-                acc = calculate_accuracy_with_dataloader(model, dataloader, transform_pred)
+                    acc = calculate_accuracy_with_dataloader_deepset(model, dataloader, transform_pred)
+                elif model_name == 'deepset_flattened':
+                    transform_pred = lambda x: torch.sigmoid(x)
+                    acc = calculate_accuracy_with_dataloader_deepset_flattened(model, dataloader, transform_pred)
+                else:
+                    acc = calculate_accuracy_with_dataloader_lmgan(model, dataloader)
             acc_dict[model_name].append(acc)
     return acc_dict
 
@@ -102,7 +135,9 @@ test_data, test_target = read_data(folder_path='precalculated_data',
                                    lambda_path='test_lambda_lambda_tensors.npy')
 
 model_names.append('deepset')
-# model_names.append('lm_gan_discriminator')
+model_names.append('deepset_v6')
+model_names.append('deepset_flattened')
+model_names.append('lm_gan_discriminator')
 
 load_from_torch = [None, None, None, None, None,
                    DeepSetModelV5(hidden_size_0=CONFIG.hidden_size_0,
@@ -110,14 +145,26 @@ load_from_torch = [None, None, None, None, None,
                                   predlast_hidden_size=CONFIG.predlast_hidden_size,
                                   meta_size=CONFIG.meta_size,
                                   out_classes=CONFIG.out_classes),
-                   False]
+                   DeepSetModelV6(hidden_size_0=CONFIG.hidden_size_0,
+                                  hidden_size_1=CONFIG.hidden_size_1,
+                                  predlast_hidden_size=CONFIG.predlast_hidden_size,
+                                  meta_size=CONFIG.meta_size,
+                                  out_classes=CONFIG.out_classes),
+                   DeepSetFlattenedModel(hidden_size_0=CONFIG.hidden_size_0,
+                                         hidden_size_1=CONFIG.hidden_size_1,
+                                         predlast_hidden_size=CONFIG.predlast_hidden_size,
+                                         meta_size=CONFIG.meta_size,
+                                         out_classes=CONFIG.out_classes),
+                   get_discriminator()
+                   ]
 
 models_dict = load_basic_models_weights(load_from_torch)
 
 print(models_dict)
 
 # model_names = ['DecisionTreeClassifier', 'KNeighborsClassifier', 'SVC', 'LogisticRegression', 'SimpleMetaNeuralNetwork']
-dataloader_for_model = [None, None, None, None, None, get_deepset_loader(), None]
+dataloader_for_model = [None, None, None, None, None, get_deepset_loader(), get_deepset_loader(), get_deepset_flattened_loader(),
+                        get_lmgan_dataloader()]
 
 accuracy = calculate_accuracy_for_all_models(models_dict, test_data, test_target, dataloader_for_model)
 
