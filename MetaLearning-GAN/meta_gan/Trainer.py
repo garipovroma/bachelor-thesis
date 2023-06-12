@@ -12,7 +12,7 @@ from torch.nn import BCEWithLogitsLoss, MSELoss
 import numpy as np
 
 from DatasetLoader import get_loader
-from Models import Generator, Discriminator
+from Models import Generator, Discriminator, GeneratorWithoutMeta, DiscriminatorWithoutMeta
 from feature_extraction.LambdaFeaturesCollector import LambdaFeaturesCollector
 from feature_extraction.MetaFeaturesCollector import MetaFeaturesCollector
 import logging
@@ -68,8 +68,12 @@ class Trainer:
               stabilize=None)
 
         if continue_from == 0:
-            self.generator = Generator(self.features, self.instances, self.classes, self.metas.getLength(), self.z_size)
-            self.discriminator = Discriminator(self.features, self.instances, self.classes, self.metas.getLength(),
+            # self.generator = Generator(self.features, self.instances, self.classes, self.metas.getLength(), self.z_size)
+            # self.discriminator = Discriminator(self.features, self.instances, self.classes, self.metas.getLength(),
+            #                                    self.lambdas.getLength())
+
+            self.generator = GeneratorWithoutMeta(self.features, self.instances, self.classes, self.metas.getLength(), self.z_size)
+            self.discriminator = DiscriminatorWithoutMeta(self.features, self.instances, self.classes, self.metas.getLength(),
                                                self.lambdas.getLength())
         else:
             self.generator = Generator(self.features, self.instances, self.classes, self.metas.getLength(), self.z_size)
@@ -263,7 +267,7 @@ if __name__ == '__main__':
     trainer = Trainer(num_epochs=20,
                       # device=args.device,
                       continue_from=0,
-                      exp_prefix='stabilization-2'
+                      exp_prefix='stabilized-without-meta'
                       )
     trainer.train()
     # trainer = Trainer(data_prefix='')
